@@ -15,7 +15,7 @@ using Semver;
 
 namespace Jeevan.NuGetClient
 {
-    public sealed class NuGetClient
+    public sealed class NuGetClient : IDisposable
     {
         private readonly string[] _sources;
         private readonly Dictionary<string, SourceDetail> _sourceCaches;
@@ -38,8 +38,10 @@ namespace Jeevan.NuGetClient
 
             _sources = sources;
             _sourceCaches = new Dictionary<string, SourceDetail>(_sources.Length, StringComparer.OrdinalIgnoreCase);
-            _client = new HttpClient();
+            _client = HttpClientFactory.Create();
         }
+
+        public IReadOnlyList<string> Sources => _sources;
 
         public async Task<IReadOnlyList<SemVersion>> GetPackageVersionsAsync(string packageName,
             bool includePrerelease = false, CancellationToken cancellationToken = default)
@@ -67,7 +69,8 @@ namespace Jeevan.NuGetClient
         public async Task<SemVersion?> GetLatestPackageVersionAsync(string packageId, bool includePrerelease = false,
             CancellationToken cancellationToken = default)
         {
-            IReadOnlyList<SemVersion> versions = await GetPackageVersionsAsync(packageId, includePrerelease, cancellationToken);
+            IReadOnlyList<SemVersion> versions = await GetPackageVersionsAsync(packageId, includePrerelease,
+                cancellationToken);
             return versions.FirstOrDefault();
         }
 
@@ -91,6 +94,18 @@ namespace Jeevan.NuGetClient
             return result;
         }
 
+        /// <summary>
+        ///     Helper method to run some logic over each NuGet source in sequence until a successful
+        ///     result is achieved. This method also retrieves and caches source details, if it is not
+        ///     already cached.
+        /// </summary>
+        /// <typeparam name="T">The type of the result expected by the caller.</typeparam>
+        /// <param name="operation">A delegate the specifies the action to run over each source.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+        /// <returns>
+        ///     A tuple of a <see cref="bool"/> indicating whether a successful result was achieved, and
+        ///     the result itself (if successful) or the default value (if unsuccessful).
+        /// </returns>
         private async Task<(bool Success, T? Result)> ForEachSource<T>(SourceOperation<T> operation,
             CancellationToken cancellationToken)
         {
@@ -115,7 +130,7 @@ namespace Jeevan.NuGetClient
             Stream sourceStream = await _client.GetStreamAsync(source);
             SourceJsonModel? sourceJsonModel = await JsonSerializer.DeserializeAsync<SourceJsonModel>(sourceStream,
                 cancellationToken: cancellationToken);
-            if (sourceJsonModel is null)
+            if (sourceJsonModel?.Resources is null)
                 throw new InvalidOperationException($"Error parsing source '{source}'.");
 
             // PackageBaseAddress
@@ -148,6 +163,17 @@ namespace Jeevan.NuGetClient
         }
 
         private static readonly Regex SearchQueryServicePattern = new("^SearchQueryService(?:/(.+))?", RegexOptions.Compiled);
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (disposing)
+                _client.Dispose();
+        }
     }
 
     internal delegate Task<(bool Success, T? Result)> SourceOperation<T>(string source, SourceDetail sourceDetail);

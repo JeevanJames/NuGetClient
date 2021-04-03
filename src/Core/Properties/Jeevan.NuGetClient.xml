@@ -10,5 +10,19 @@
                 during the lifetime of the client.
             </summary>
         </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClient.ForEachSource``1(Jeevan.NuGetClient.SourceOperation{``0},System.Threading.CancellationToken)">
+            <summary>
+                Helper method to run some logic over each NuGet source in sequence until a successful
+                result is achieved. This method also retrieves and caches source details, if it is not
+                already cached.
+            </summary>
+            <typeparam name="T">The type of the result expected by the caller.</typeparam>
+            <param name="operation">A delegate the specifies the action to run over each source.</param>
+            <param name="cancellationToken">A <see cref="T:System.Threading.CancellationToken"/>.</param>
+            <returns>
+                A tuple of a <see cref="T:System.Boolean"/> indicating whether a successful result was achieved, and
+                the result itself (if successful) or the default value (if unsuccessful).
+            </returns>
+        </member>
     </members>
 </doc>
