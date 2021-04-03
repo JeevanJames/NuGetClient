@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Jeevan.NuGetClient</name>
+    </assembly>
+    <members>
+        <member name="T:Jeevan.NuGetClient.Internals.SourceDetail">
+            <summary>
+                Cached information about a NuGet source, so we don't need to retrieve it multiple times
+                during the lifetime of the client.
+            </summary>
+        </member>
+    </members>
+</doc>
