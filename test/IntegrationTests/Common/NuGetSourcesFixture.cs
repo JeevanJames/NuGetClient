@@ -4,11 +4,16 @@ using Xunit;
 
 namespace Jeevan.NuGetClient.IntegrationTests.Common
 {
-    public sealed class NuGetSourcesFixture
+    public sealed class NuGetSourcesFixture : IDisposable
     {
         public NuGetClient Client { get; } = new(
             "https://www.myget.org/F/jeevanjames/api/v3/index.json",
             "https://api.nuget.org/v3/index.json");
+
+        public void Dispose()
+        {
+            Client.Dispose();
+        }
     }
 
     [CollectionDefinition(nameof(NuGetSourcesFixture))]
