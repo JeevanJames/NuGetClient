@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <RootNamespace>$(BaseNamespace)</RootNamespace>
+        <AssemblyName>$(RootNamespace)</AssemblyName>
+        <DocumentationFile>Properties\$(AssemblyName).xml</DocumentationFile>
+        <Description>NuGetClient core library</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="semver" Version="2.0.6" />
+        <PackageReference Include="System.Text.Json" Version="5.0.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Internals\" />
+    </ItemGroup>
+
+</Project>
