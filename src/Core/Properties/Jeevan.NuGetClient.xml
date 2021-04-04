@@ -10,6 +10,75 @@
                 contents to the file system.
             </summary>
         </member>
+        <member name="M:Jeevan.NuGetClient.DownloadExtensions.DownloadPackageAsync(Jeevan.NuGetClient.NuGetClient,System.String,Jeevan.NuGetClient.NuGetVersion,System.String,System.String,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+                Downloads a specific version of a NuGet package to a directory.
+            </summary>
+            <param name="client">The <see cref="T:Jeevan.NuGetClient.NuGetClient"/> instance.</param>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="version">The version of the NuGet package.</param>
+            <param name="directory">The directory to save the NuGet package to.</param>
+            <param name="fileName">
+                Optional file name for the downloaded package. If not specified, then the name is
+                <c>[package id].[version].nupkg</c>.
+            </param>
+            <param name="overwrite">
+                Indicates whether to overwrite the package file, if it already exists (default: false).
+            </param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                A <see cref="T:System.IO.FileInfo"/> instance denoting the downloaded file; <c>null</c> if the
+                package could not be downloaded and saved.
+            </returns>
+        </member>
+        <member name="M:Jeevan.NuGetClient.DownloadExtensions.DownloadLatestPackageAsync(Jeevan.NuGetClient.NuGetClient,System.String,System.String,System.String,System.Boolean,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+                Downloads the latest version of a NuGet package to a directory.
+            </summary>
+            <param name="client">The <see cref="T:Jeevan.NuGetClient.NuGetClient"/> instance.</param>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="directory">The directory to save the NuGet package to.</param>
+            <param name="fileName">
+                Optional file name for the downloaded package. If not specified, then the name is
+                <c>[package id].[version].nupkg</c>.
+            </param>
+            <param name="overwrite">
+                Indicates whether to overwrite the package file, if it already exists (default: false).
+            </param>
+            <param name="includePrerelease">
+                Indicates whether to consider pre-release versions of the package when calculating the
+                version of the latest package.
+            </param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                A <see cref="T:System.IO.FileInfo"/> instance denoting the downloaded file; <c>null</c> if the
+                package could not be downloaded and saved.
+            </returns>
+        </member>
+        <member name="M:Jeevan.NuGetClient.DownloadExtensions.DownloadPackageContentsForTfmAsync(Jeevan.NuGetClient.NuGetClient,System.String,Jeevan.NuGetClient.NuGetVersion,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+                Downloads the contents of a specific target framework moniker (TFM) folder in a NuGet
+                package to a directory.
+            </summary>
+            <param name="client">The <see cref="T:Jeevan.NuGetClient.NuGetClient"/> instance.</param>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="version">The version of the NuGet package.</param>
+            <param name="tfm">The target framework moniker (TFM) to download the contents for.</param>
+            <param name="directory">The directory to save the contents to.</param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                A collection of <see cref="T:System.IO.FileInfo"/> instances, one for each file downloaded.
+            </returns>
+        </member>
         <member name="T:Jeevan.NuGetClient.Internals.SourceDetail">
             <summary>
                 Cached information about a NuGet source, so we don't need to retrieve it multiple times

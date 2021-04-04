@@ -18,6 +18,7 @@ namespace Jeevan.NuGetClient.IntegrationTests.NuGetClientTests
         }
 
         [Theory]
+        [InlineData("AutoMapper", false, "10.1.1")]
         [InlineData("ContentProvider", false, "0.63.0+47")]
         [InlineData("Collections.NET", false, "1.7.0")]
         public async Task Get_latest_version_for_valid_package(string packageId, bool includePrerelease,
