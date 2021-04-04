@@ -1,16 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 using Jeevan.NuGetClient;
 
-using Semver;
-
-const string packageId = "AutoMapper";
-const bool prerelease = false;
+const string packageId = "Basics";
+const bool prerelease = true;
 NuGetVersion? version = null;
 
-var client = new NuGetClient();
+using var client = new NuGetClient();
 
 // List versions
 IReadOnlyList<NuGetVersion> versions = await client.GetPackageVersionsAsync(packageId, prerelease);
@@ -28,11 +27,11 @@ if (version is null)
 Console.WriteLine($"Selected version: {version}");
 
 // Download package
-string? packagePath = await client.DownloadPackageAsync(packageId, version.Value,
-    @$"D:\Temp\Packages\{packageId}.{version}.nupkg.zip", overwrite: true);
+FileInfo? packagePath = await client.DownloadPackageAsync(packageId, version.Value, @"D:\Temp\Packages",
+    overwrite: true);
 if (packagePath is null)
     throw new Exception("Could not find package");
-Console.WriteLine($"Package path: {packagePath}");
+Console.WriteLine($"Package path: {packagePath.FullName}");
 
 // List contents of TFM
 //await foreach (TfmContent content in client.GetPackageContentsForTfmAsync(packageId, version, "netstandard2.0"))

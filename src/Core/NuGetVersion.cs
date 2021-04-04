@@ -4,6 +4,10 @@ using Semver;
 
 namespace Jeevan.NuGetClient
 {
+    /// <summary>
+    ///     Represents a NuGet package version. This could either be compatible with Semantic Version
+    /// `   (semver) or .NET assembly 4-part versions (Major.Minor.Build.Revision).
+    /// </summary>
     public readonly struct NuGetVersion : IEquatable<NuGetVersion>, IComparable<NuGetVersion>
     {
         private readonly SemVersion? _semver;
@@ -40,6 +44,8 @@ namespace Jeevan.NuGetClient
             _semver = null;
         }
 
+        public bool IsValid => _semver is not null || _fullVer is not null;
+
         public bool Equals(NuGetVersion other)
         {
             return Equals(_semver, other._semver) && Equals(_fullVer, other._fullVer);
@@ -62,14 +68,24 @@ namespace Jeevan.NuGetClient
 
         public int CompareTo(NuGetVersion other)
         {
+            if (!IsValid && !other.IsValid)
+                return 0;
+            if (IsValid && !other.IsValid)
+                return 1;
+            if (!IsValid && other.IsValid)
+                return -1;
+
             if (_semver is not null && other._semver is not null)
                 return _semver.CompareTo(other._semver);
             if (_fullVer is not null && other._fullVer is not null)
                 return _fullVer.CompareTo(other._fullVer);
 
-            SemVersion thisSemver = _semver ?? new SemVersion(_fullVer!.Major, _fullVer.Minor, _fullVer.Revision);
-            SemVersion otherSemver = other._semver
-                ?? new SemVersion(other._fullVer!.Major, other._fullVer.Minor, other._fullVer.Revision);
+            // If one instance uses semver and the other uses full version, then convert to semver and
+            // compare.
+            SemVersion thisSemver = _semver ?? new SemVersion(_fullVer!.Major, _fullVer.Minor, _fullVer.Build,
+                build: _fullVer.Revision.ToString());
+            SemVersion otherSemver = other._semver ?? new SemVersion(other._fullVer!.Major, other._fullVer.Minor,
+                other._fullVer.Revision);
             return thisSemver.CompareTo(otherSemver);
         }
 

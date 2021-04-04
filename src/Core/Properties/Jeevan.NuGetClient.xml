@@ -4,16 +4,101 @@
         <name>Jeevan.NuGetClient</name>
     </assembly>
     <members>
+        <member name="T:Jeevan.NuGetClient.DownloadExtensions">
+            <summary>
+                Extensions on <see cref="T:Jeevan.NuGetClient.NuGetClient"/> specifically for downloading package or package
+                contents to the file system.
+            </summary>
+        </member>
         <member name="T:Jeevan.NuGetClient.Internals.SourceDetail">
             <summary>
                 Cached information about a NuGet source, so we don't need to retrieve it multiple times
                 during the lifetime of the client.
             </summary>
         </member>
+        <member name="T:Jeevan.NuGetClient.NuGetClient">
+            <summary>
+                Client for the NuGet API.
+            </summary>
+        </member>
+        <member name="F:Jeevan.NuGetClient.NuGetClient._sourceCaches">
+            <summary>
+                A cache of essential details for each source. This is initialized for each source
+                whenever the source is accessed for the first time.
+            </summary>
+            <seealso cref="M:Jeevan.NuGetClient.NuGetClient.GetSourceDetails(System.String,System.Threading.CancellationToken)"/>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClient.#ctor">
+            <summary>
+                Initializes a new instance of the <see cref="T:Jeevan.NuGetClient.NuGetClient"/> class, with the nuget.org
+                source.
+            </summary>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClient.#ctor(System.String[])">
+            <summary>
+                Initializes a new instance of the <see cref="T:Jeevan.NuGetClient.NuGetClient"/> class with the specified
+                <paramref name="sources"/>.
+            </summary>
+            <param name="sources">
+                One or more NuGet sources that this instance will use to interact with the API.
+            </param>
+            <exception cref="T:System.ArgumentNullException">
+                Thrown if <paramref name="sources"/> is <c>null</c>.
+            </exception>
+            <exception cref="T:System.ArgumentException">Thrown if no sources are specified.</exception>
+        </member>
         <member name="P:Jeevan.NuGetClient.NuGetClient.Sources">
             <summary>
                 Gets the list of NuGet sources that this instance will query for any operation.
             </summary>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClient.GetPackageAsync(System.String,Jeevan.NuGetClient.NuGetVersion,System.Threading.CancellationToken)">
+            <summary>
+                Gets the specific version of a NuGet package (.nupkg file) as a <see cref="T:System.IO.Stream"/>.
+            </summary>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="version">The version of the NuGet package.</param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                The NuGet package as a <see cref="T:System.IO.Stream"/>; or <c>null</c> if the specific package was
+                not found at any of the sources.
+            </returns>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClient.GetPackageVersionsAsync(System.String,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+                Gets all available versions of a NuGet package.
+            </summary>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="includePrerelease">
+                Indicates whether to include pre-release versions of the package.
+            </param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                A collection of all available versions of the package, in descending order. If the
+                package is not found, an empty collection is returned.
+            </returns>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClient.GetPackageLatestVersionAsync(System.String,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+                Gets the latest version of a NuGet package.
+            </summary>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="includePrerelease">
+                Indicates whether to consider pre-release versions of the package.
+            </param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                The latest version of the specified NuGet package; <c>null</c> if the package was not found.
+            </returns>
         </member>
         <member name="M:Jeevan.NuGetClient.NuGetClient.ForEachSource``1(Jeevan.NuGetClient.NuGetClient.SourceOperation{``0},System.Threading.CancellationToken)">
             <summary>
@@ -28,6 +113,72 @@
                 A tuple of a <see cref="T:System.Boolean"/> indicating whether a successful result was achieved, and
                 the result itself (if successful) or the default value (if unsuccessful).
             </returns>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClientExtensions.GetLatestPackageAsync(Jeevan.NuGetClient.NuGetClient,System.String,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+                Gets the latest version of the specified NuGet package.
+            </summary>
+            <param name="client">The <see cref="T:Jeevan.NuGetClient.NuGetClient"/> instance.</param>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="includePrerelease">
+                Indicates whether to consider pre-release versions of the package when looking for the latest version.
+            </param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                The NuGet package as a <see cref="T:System.IO.Stream"/>; or <c>null</c> if the specific package was
+                not found at any of the sources.
+            </returns>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClientExtensions.GetPackageContentsForTfmAsync(Jeevan.NuGetClient.NuGetClient,System.String,Jeevan.NuGetClient.NuGetVersion,System.String,System.Threading.CancellationToken)">
+            <summary>
+                Gets the contents of a NuGet package for specific target framework moniker (TFM).
+            </summary>
+            <param name="client">The <see cref="T:Jeevan.NuGetClient.NuGetClient"/> instance.</param>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="version">The version of the NuGet package.</param>
+            <param name="tfm">The target framework moniker to get the contents for.</param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                A sequence of <see cref="T:Jeevan.NuGetClient.PackageContent"/> objects, one for each file in the package.
+            </returns>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClientExtensions.GetPackageTfmsAsync(Jeevan.NuGetClient.NuGetClient,System.String,Jeevan.NuGetClient.NuGetVersion,System.Threading.CancellationToken)">
+            <summary>
+                Gets all target framework monikers (TFMs) for a NuGet package.
+            </summary>
+            <param name="client">The <see cref="T:Jeevan.NuGetClient.NuGetClient"/> instance.</param>
+            <param name="packageId">The ID of the NuGet package.</param>
+            <param name="version">The version of the NuGet package.</param>
+            <param name="cancellationToken">
+                A cancellation token that can be used by other objects or threads to receive notice of
+                cancellation.
+            </param>
+            <returns>
+                A collection of available TFMs in the specified package; an empty sequence if the
+                package was not found.
+            </returns>
+        </member>
+        <member name="T:Jeevan.NuGetClient.NuGetVersion">
+            <summary>
+                Represents a NuGet package version. This could either be compatible with Semantic Version
+            `   (semver) or .NET assembly 4-part versions (Major.Minor.Build.Revision).
+            </summary>
+        </member>
+        <member name="P:Jeevan.NuGetClient.PackageContent.Name">
+            <summary>
+                Gets the name of the content in the package.
+            </summary>
+        </member>
+        <member name="P:Jeevan.NuGetClient.PackageContent.Stream">
+            <summary>
+                Gets a <see cref="P:Jeevan.NuGetClient.PackageContent.Stream"/> that represents the contents.
+            </summary>
         </member>
     </members>
 </doc>

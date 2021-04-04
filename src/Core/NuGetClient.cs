@@ -13,17 +13,40 @@ using Jeevan.NuGetClient.JsonModels;
 
 namespace Jeevan.NuGetClient
 {
+    /// <summary>
+    ///     Client for the NuGet API.
+    /// </summary>
     public sealed class NuGetClient : IDisposable
     {
-        private readonly string[] _sources;
-        private readonly Dictionary<string, SourceDetail> _sourceCaches;
         private readonly HttpClient _client;
 
+        /// <summary>
+        ///     A cache of essential details for each source. This is initialized for each source
+        ///     whenever the source is accessed for the first time.
+        /// </summary>
+        /// <seealso cref="GetSourceDetails"/>
+        private readonly Dictionary<string, SourceDetail> _sourceCaches;
+
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="NuGetClient"/> class, with the nuget.org
+        ///     source.
+        /// </summary>
         public NuGetClient()
             : this("https://api.nuget.org/v3/index.json")
         {
         }
 
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="NuGetClient"/> class with the specified
+        ///     <paramref name="sources"/>.
+        /// </summary>
+        /// <param name="sources">
+        ///     One or more NuGet sources that this instance will use to interact with the API.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        ///     Thrown if <paramref name="sources"/> is <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">Thrown if no sources are specified.</exception>
         public NuGetClient(params string[] sources)
         {
             if (sources is null)
@@ -34,22 +57,35 @@ namespace Jeevan.NuGetClient
                     nameof(sources));
             }
 
-            _sources = sources;
-            _sourceCaches = new Dictionary<string, SourceDetail>(_sources.Length, StringComparer.OrdinalIgnoreCase);
+            Sources = sources;
             _client = HttpClientFactory.Create();
+            _sourceCaches = new Dictionary<string, SourceDetail>(Sources.Count, StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
         ///     Gets the list of NuGet sources that this instance will query for any operation.
         /// </summary>
-        public IReadOnlyList<string> Sources => _sources;
+        public IReadOnlyList<string> Sources { get; }
 
-        public async Task<Stream?> GetPackageAsync(string packageName, NuGetVersion version,
+        /// <summary>
+        ///     Gets the specific version of a NuGet package (.nupkg file) as a <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="packageId">The ID of the NuGet package.</param>
+        /// <param name="version">The version of the NuGet package.</param>
+        /// <param name="cancellationToken">
+        ///     A cancellation token that can be used by other objects or threads to receive notice of
+        ///     cancellation.
+        /// </param>
+        /// <returns>
+        ///     The NuGet package as a <see cref="Stream"/>; or <c>null</c> if the specific package was
+        ///     not found at any of the sources.
+        /// </returns>
+        public async Task<Stream?> GetPackageAsync(string packageId, NuGetVersion version,
             CancellationToken cancellationToken = default)
         {
             (_, Stream? result) = await ForEachSource(async (_, sourceDetail) =>
             {
-                string id = packageName.ToLowerInvariant();
+                string id = packageId.ToLowerInvariant();
                 string ver = version.ToString().ToLowerInvariant();
                 string relativeUrl = $"{id}/{ver}/{id}.{ver}.nupkg";
                 var packageUri = new Uri(sourceDetail.PackageBaseUri, relativeUrl);
@@ -64,6 +100,21 @@ namespace Jeevan.NuGetClient
             return result;
         }
 
+        /// <summary>
+        ///     Gets all available versions of a NuGet package.
+        /// </summary>
+        /// <param name="packageId">The ID of the NuGet package.</param>
+        /// <param name="includePrerelease">
+        ///     Indicates whether to include pre-release versions of the package.
+        /// </param>
+        /// <param name="cancellationToken">
+        ///     A cancellation token that can be used by other objects or threads to receive notice of
+        ///     cancellation.
+        /// </param>
+        /// <returns>
+        ///     A collection of all available versions of the package, in descending order. If the
+        ///     package is not found, an empty collection is returned.
+        /// </returns>
         public async Task<IReadOnlyList<NuGetVersion>> GetPackageVersionsAsync(string packageId,
             bool includePrerelease = false, CancellationToken cancellationToken = default)
         {
@@ -73,8 +124,9 @@ namespace Jeevan.NuGetClient
                 var queryUri = new Uri(sourceDetail.SearchQueryServiceUri, queryString);
 
                 Stream responseStream = await _client.GetStreamAsync(queryUri);
-                SearchQueryResponseJsonModel? response = await JsonSerializer.DeserializeAsync<SearchQueryResponseJsonModel>(
-                    responseStream, cancellationToken: cancellationToken);
+                SearchQueryResponseJsonModel? response = await JsonSerializer
+                    .DeserializeAsync<SearchQueryResponseJsonModel>(responseStream,
+                        cancellationToken: cancellationToken);
                 if (response is null || response.TotalHits == 0)
                     return (false, default);
                 if (response.Data.Count == 0 || response.Data[0].Versions.Length == 0)
@@ -87,6 +139,20 @@ namespace Jeevan.NuGetClient
                 : Array.Empty<NuGetVersion>();
         }
 
+        /// <summary>
+        ///     Gets the latest version of a NuGet package.
+        /// </summary>
+        /// <param name="packageId">The ID of the NuGet package.</param>
+        /// <param name="includePrerelease">
+        ///     Indicates whether to consider pre-release versions of the package.
+        /// </param>
+        /// <param name="cancellationToken">
+        ///     A cancellation token that can be used by other objects or threads to receive notice of
+        ///     cancellation.
+        /// </param>
+        /// <returns>
+        ///     The latest version of the specified NuGet package; <c>null</c> if the package was not found.
+        /// </returns>
         public async Task<NuGetVersion?> GetPackageLatestVersionAsync(string packageId, bool includePrerelease = false,
             CancellationToken cancellationToken = default)
         {
@@ -110,8 +176,10 @@ namespace Jeevan.NuGetClient
         private async Task<(bool Success, T? Result)> ForEachSource<T>(SourceOperation<T> operation,
             CancellationToken cancellationToken)
         {
-            foreach (string source in _sources)
+            foreach (string source in Sources)
             {
+                // Look for a cached version of the source details. If one doesn't exist, create one
+                // from the source.
                 if (!_sourceCaches.TryGetValue(source, out SourceDetail? sourceDetail))
                 {
                     sourceDetail = await GetSourceDetails(source, cancellationToken);
