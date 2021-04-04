@@ -24,7 +24,7 @@ namespace Jeevan.NuGetClient.IntegrationTests.NuGetClientTests
         [UseReporter(typeof(XUnit2Reporter))]
         public async Task Download_a_nuget_package()
         {
-            Stream? packageStream = await Fixture.Client.DownloadPackageAsync("Collections.NET", "1.7.0");
+            Stream? packageStream = await Fixture.Client.GetPackageAsync("Collections.NET", "1.7.0");
             packageStream.ShouldNotBeNull();
 
             await using var ms = new MemoryStream();

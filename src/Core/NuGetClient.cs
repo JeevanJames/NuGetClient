@@ -11,8 +11,6 @@ using System.Threading.Tasks;
 using Jeevan.NuGetClient.Internals;
 using Jeevan.NuGetClient.JsonModels;
 
-using Semver;
-
 namespace Jeevan.NuGetClient
 {
     public sealed class NuGetClient : IDisposable
@@ -41,40 +39,12 @@ namespace Jeevan.NuGetClient
             _client = HttpClientFactory.Create();
         }
 
+        /// <summary>
+        ///     Gets the list of NuGet sources that this instance will query for any operation.
+        /// </summary>
         public IReadOnlyList<string> Sources => _sources;
 
-        public async Task<IReadOnlyList<SemVersion>> GetPackageVersionsAsync(string packageName,
-            bool includePrerelease = false, CancellationToken cancellationToken = default)
-        {
-            (bool success, IEnumerable<SemVersion>? result) = await ForEachSource(async (_, sourceDetail) =>
-            {
-                string queryString = $"?q=PackageId:{packageName}&prerelease={includePrerelease}";
-                var queryUri = new Uri(sourceDetail.SearchQueryServiceUri, queryString);
-
-                Stream responseStream = await _client.GetStreamAsync(queryUri);
-                SearchQueryResponseJsonModel? response = await JsonSerializer.DeserializeAsync<SearchQueryResponseJsonModel>(
-                    responseStream, cancellationToken: cancellationToken);
-                if (response is null || response.TotalHits == 0)
-                    return (false, default);
-                if (response.Data.Count == 0 || response.Data[0].Versions.Length == 0)
-                    return (false, default);
-                return (true, response.Data[0].Versions.Select(v => SemVersion.Parse(v.Version)));
-            }, cancellationToken);
-
-            return success && result is not null
-                ? result.OrderByDescending(v => v).ToList()
-                : Array.Empty<SemVersion>();
-        }
-
-        public async Task<SemVersion?> GetLatestPackageVersionAsync(string packageId, bool includePrerelease = false,
-            CancellationToken cancellationToken = default)
-        {
-            IReadOnlyList<SemVersion> versions = await GetPackageVersionsAsync(packageId, includePrerelease,
-                cancellationToken);
-            return versions.FirstOrDefault();
-        }
-
-        public async Task<Stream?> DownloadPackageAsync(string packageName, SemVersion version,
+        public async Task<Stream?> GetPackageAsync(string packageName, NuGetVersion version,
             CancellationToken cancellationToken = default)
         {
             (_, Stream? result) = await ForEachSource(async (_, sourceDetail) =>
@@ -92,6 +62,37 @@ namespace Jeevan.NuGetClient
             }, cancellationToken);
 
             return result;
+        }
+
+        public async Task<IReadOnlyList<NuGetVersion>> GetPackageVersionsAsync(string packageId,
+            bool includePrerelease = false, CancellationToken cancellationToken = default)
+        {
+            (bool success, IEnumerable<NuGetVersion>? result) = await ForEachSource(async (_, sourceDetail) =>
+            {
+                string queryString = $"?q=PackageId:{packageId}&prerelease={includePrerelease}";
+                var queryUri = new Uri(sourceDetail.SearchQueryServiceUri, queryString);
+
+                Stream responseStream = await _client.GetStreamAsync(queryUri);
+                SearchQueryResponseJsonModel? response = await JsonSerializer.DeserializeAsync<SearchQueryResponseJsonModel>(
+                    responseStream, cancellationToken: cancellationToken);
+                if (response is null || response.TotalHits == 0)
+                    return (false, default);
+                if (response.Data.Count == 0 || response.Data[0].Versions.Length == 0)
+                    return (false, default);
+                return (true, response.Data[0].Versions.Select(v => new NuGetVersion(v.Version)));
+            }, cancellationToken);
+
+            return success && result is not null
+                ? result.OrderByDescending(v => v).ToList()
+                : Array.Empty<NuGetVersion>();
+        }
+
+        public async Task<NuGetVersion?> GetPackageLatestVersionAsync(string packageId, bool includePrerelease = false,
+            CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<NuGetVersion> versions = await GetPackageVersionsAsync(packageId, includePrerelease,
+                cancellationToken);
+            return versions.FirstOrDefault();
         }
 
         /// <summary>
@@ -148,7 +149,7 @@ namespace Jeevan.NuGetClient
                 {
                     Match match = SearchQueryServicePattern.Match(r.Type);
                     string version = match.Groups[1].Success ? match.Groups[1].Value : "0.1.0";
-                    return new { Resource = r, Version = SemVersion.Parse(version) };
+                    return new { Resource = r, Version = new NuGetVersion(version) };
                 })
                 .OrderByDescending(r => r.Version)
                 .FirstOrDefault();
@@ -174,7 +175,7 @@ namespace Jeevan.NuGetClient
             if (disposing)
                 _client.Dispose();
         }
-    }
 
-    internal delegate Task<(bool Success, T? Result)> SourceOperation<T>(string source, SourceDetail sourceDetail);
+        internal delegate Task<(bool Success, T? Result)> SourceOperation<T>(string source, SourceDetail sourceDetail);
+    }
 }

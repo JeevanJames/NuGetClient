@@ -19,7 +19,7 @@ namespace Jeevan.NuGetClient.IntegrationTests.NuGetClientTests
         {
             var client = new NuGetClient(sourceUri);
             await Should.ThrowAsync(async () =>
-                await client.GetLatestPackageVersionAsync("Serilog"), expectedExceptionType);
+                await client.GetPackageLatestVersionAsync("Serilog"), expectedExceptionType);
         }
     }
 }

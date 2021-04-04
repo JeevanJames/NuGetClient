@@ -23,7 +23,7 @@ namespace Jeevan.NuGetClient.IntegrationTests.NetGetClientTests
         public async Task Should_get_latest_version_for_valid_package(string packageId, bool includePrerelease,
             string version)
         {
-            SemVersion? latestVersion = await Fixture.Client.GetLatestPackageVersionAsync(packageId, includePrerelease);
+            SemVersion? latestVersion = await Fixture.Client.GetPackageLatestVersionAsync(packageId, includePrerelease);
 
             latestVersion.ShouldNotBeNull();
             latestVersion!.ToString().ShouldBe(version);
@@ -33,7 +33,7 @@ namespace Jeevan.NuGetClient.IntegrationTests.NetGetClientTests
         [InlineData("Non.Existing.Package")]
         public async Task Should_throw_for_non_existing_packages(string packageId)
         {
-            SemVersion? latestVersion = await Fixture.Client.GetLatestPackageVersionAsync(packageId);
+            SemVersion? latestVersion = await Fixture.Client.GetPackageLatestVersionAsync(packageId);
 
             latestVersion.ShouldBeNull();
         }

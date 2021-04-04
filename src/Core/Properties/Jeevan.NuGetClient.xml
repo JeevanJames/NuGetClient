@@ -10,7 +10,12 @@
                 during the lifetime of the client.
             </summary>
         </member>
-        <member name="M:Jeevan.NuGetClient.NuGetClient.ForEachSource``1(Jeevan.NuGetClient.SourceOperation{``0},System.Threading.CancellationToken)">
+        <member name="P:Jeevan.NuGetClient.NuGetClient.Sources">
+            <summary>
+                Gets the list of NuGet sources that this instance will query for any operation.
+            </summary>
+        </member>
+        <member name="M:Jeevan.NuGetClient.NuGetClient.ForEachSource``1(Jeevan.NuGetClient.NuGetClient.SourceOperation{``0},System.Threading.CancellationToken)">
             <summary>
                 Helper method to run some logic over each NuGet source in sequence until a successful
                 result is achieved. This method also retrieves and caches source details, if it is not

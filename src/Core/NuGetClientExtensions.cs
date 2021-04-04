@@ -7,31 +7,25 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Semver;
-
 namespace Jeevan.NuGetClient
 {
     public static class NuGetClientExtensions
     {
-        public static async Task<string?> DownloadPackageToFileAsync(this NuGetClient client, string packageId, SemVersion version,
-            string filePath, bool overwrite = false, CancellationToken cancellationToken = default)
+        public static async Task<Stream?> GetLatestPackageAsync(this NuGetClient client, string packageId,
+            bool includePrerelease = false, CancellationToken cancellationToken = default)
         {
-            Stream? packageStream = await client.DownloadPackageAsync(packageId, version, cancellationToken);
-            if (packageStream is null)
+            NuGetVersion? latestVersion = await client.GetPackageLatestVersionAsync(packageId, includePrerelease,
+                cancellationToken);
+            if (latestVersion is null)
                 return null;
 
-            await using var fileStream = new FileStream(filePath, overwrite ? FileMode.Create : FileMode.CreateNew,
-                FileAccess.Write, FileShare.Read);
-            packageStream.Seek(0, SeekOrigin.Begin);
-            await packageStream.CopyToAsync(fileStream, cancellationToken);
-
-            return Path.GetFullPath(filePath);
+            return await client.GetPackageAsync(packageId, latestVersion.Value, cancellationToken);
         }
 
         public static async IAsyncEnumerable<TfmContent> GetPackageContentsForTfmAsync(this NuGetClient client,
-            string packageId, SemVersion version, string tfm)
+            string packageId, NuGetVersion version, string tfm)
         {
-            Stream? packageStream = await client.DownloadPackageAsync(packageId, version);
+            Stream? packageStream = await client.GetPackageAsync(packageId, version);
             if (packageStream is null)
                 yield break;
 
@@ -42,27 +36,10 @@ namespace Jeevan.NuGetClient
                 yield return new TfmContent(tfmEntry.Name, tfmEntry.Open());
         }
 
-        public static async Task DownloadPackageContentsForTfmAsync(this NuGetClient client, string packageId,
-            SemVersion version, string tfm, string downloadDirectory)
-        {
-            if (!Directory.Exists(downloadDirectory))
-                Directory.CreateDirectory(downloadDirectory);
-
-            await foreach (TfmContent content in client.GetPackageContentsForTfmAsync(packageId, version, tfm))
-            {
-                string filePath = Path.Combine(downloadDirectory, content.Name);
-                await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write,
-                    FileShare.Read);
-                if (content.Stream.CanSeek)
-                    content.Stream.Seek(0, SeekOrigin.Begin);
-                await content.Stream.CopyToAsync(fileStream);
-            }
-        }
-
         public static async Task<IEnumerable<string>> GetPackageTfmsAsync(this NuGetClient client, string packageId,
-            SemVersion version, CancellationToken cancellationToken = default)
+            NuGetVersion version, CancellationToken cancellationToken = default)
         {
-            Stream? packageStream = await client.DownloadPackageAsync(packageId, version, cancellationToken);
+            Stream? packageStream = await client.GetPackageAsync(packageId, version, cancellationToken);
             if (packageStream is null)
                 return Enumerable.Empty<string>();
 
@@ -81,18 +58,5 @@ namespace Jeevan.NuGetClient
         }
 
         private static readonly Regex TfmPattern = new(@"^lib/(.+)/", RegexOptions.Compiled);
-    }
-
-    public sealed class TfmContent
-    {
-        internal TfmContent(string name, Stream stream)
-        {
-            Name = name;
-            Stream = stream;
-        }
-
-        public string Name { get; }
-
-        public Stream Stream { get; }
     }
 }
